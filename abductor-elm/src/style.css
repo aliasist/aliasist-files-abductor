@@ -1,0 +1,178 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b1220;
+  --card: #111a2e;
+  --border: #1f2b45;
+  --text: #e6ecff;
+  --muted: #8fa0c4;
+  --green: #4ade80;
+  --green-dark: #16a34a;
+  --red: #ef4444;
+  --amber: #facc15;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.card {
+  width: 100%;
+  max-width: 620px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.header h1 {
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+input[type="text"] {
+  flex: 1;
+  background: #0d1526;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.disclaimer {
+  background: #1a1408;
+  border: 1px solid #4d3d10;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  font-size: 0.85rem;
+}
+
+.disclaimer p {
+  margin: 0 0 8px;
+  color: var(--amber);
+}
+
+.disclaimer label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.abduct {
+  flex: 1;
+  background: var(--green);
+  color: #06210f;
+  font-weight: 700;
+}
+
+.abduct:hover:not(:disabled) {
+  background: var(--green-dark);
+}
+
+.eject {
+  background: #7f1d1d;
+  color: #fff;
+}
+
+.status {
+  margin-top: 18px;
+}
+
+.progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #0d1526;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), #38bdf8);
+  transition: width 0.2s ease;
+}
+
+.status p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.status.success {
+  color: var(--green);
+  font-size: 0.9rem;
+}
+
+.status.error {
+  color: var(--red);
+  font-size: 0.9rem;
+}

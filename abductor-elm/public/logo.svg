@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Aliasist favicon">
+  <defs>
+    <clipPath id="badge">
+      <circle cx="512" cy="512" r="512"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#badge)">
+    <circle cx="512" cy="512" r="512" fill="#14b85f"/>
+    <path d="M493 108h205l294 916H779l-48-171H455l-48 171H198L493 108Zm99 250-89 319h179L594 358h-2Z" fill="#ffffff"/>
+    <path d="M160 1024h760v72H160z" fill="#ffffff"/>
+  </g>
+</svg>
