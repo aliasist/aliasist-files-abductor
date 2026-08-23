@@ -3,9 +3,9 @@
 This bundle contains both implementations of **Aliasist Files Abductor**:
 
 ```
-aliasist-files-abductor-bundle/
-├── files-abductor-rust-tauri/     # Modern Rust + Tauri rewrite (v3.0.0)
-├── files-abductor-electron-og/    # Original Electron + JavaScript/Python app (v2.7.0)
+aliasist-files-abductor/
+├── abductor-tauri/       # Modern Rust + Tauri rewrite (v3.0.0)
+├── abductor-electron/    # Original Electron + JavaScript/Python app (v2.7.0)
 └── README.md
 ```
 
@@ -24,7 +24,7 @@ The high-performance, lightweight rewrite built with Rust, Tauri v2, React, and 
 
 ### Running:
 ```bash
-cd files-abductor-rust-tauri
+cd abductor-tauri
 npm install
 npm run tauri dev
 ```
@@ -40,7 +40,7 @@ npm run tauri build
 
 ---
 
-## 2. `files-abductor-electron-og` (Electron v2.7.0)
+## 2. `abductor-electron` (Electron v2.7.0)
 
 The original classic Electron application featuring the full UFO splash sequence, joke banks, and custom alien aesthetic.
 
@@ -51,9 +51,9 @@ The original classic Electron application featuring the full UFO splash sequence
 
 ### Running:
 ```bash
-cd files-abductor-electron-og
+cd abductor-electron
 npm install
-npm start
+npm run dev
 ```
 
 ---

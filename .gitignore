@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Rust build artifacts
+target/
+**/target/
+
+# Build and distribution outputs
+dist/
+**/dist/
+build/
+**/build/
+
+# Logs and environment
+*.log
+npm-debug.log*
+.env
+.DS_Store
+Thumbs.db
