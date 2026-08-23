@@ -31,36 +31,28 @@ aliasist-files-abductor/
 
 ---
 
-## 📸 Applications Showcase
+## 📸 Visual Showcase & Screenshots
 
-### 1. Modern Rust + Tauri Version (`abductor-tauri`)
+### 🌌 1. Retro UFO Splash Sequence
+> *An animated retro space scene with glowing tractor beams and real-time status calibration.*
+
+<p align="center">
+  <img src="docs/images/splash-screen.png" alt="Splash Screen" width="720" style="border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+</p>
+
+### 🛸 2. Modern Rust + Tauri Version (`abductor-tauri`)
 > *Ultra-lightweight (~15 MB), instant startup, zero background bloat, bundled sidecar binaries, and glowing cyber Alien theme.*
 
-```
-+-------------------------------------------------------------------+
-|  🦾  ALIASIST FILES ABDUCTOR                               [ - □ ✕ ]|
-|  Abducting files from a galaxy far far away.. · www.aliasist.com  |
-|                                                                   |
-|  🎯 Target URL                                                    |
-|  [ https://www.youtube.com/watch?v=...                 ] [📋 Paste]|
-|                                                                   |
-|  📂 Landing Zone                                                  |
-|  [ /home/user/Downloads                                ] [📁 Browse]|
-|                                                                   |
-|  ⚠ DISCLAIMER: Space pirates will be ejected into the sun.       |
-|  [✓] 🛡️ I'll obey and be on my best behavior.                    |
-|                                                                   |
-|  [ 🛸 Abduct File ]     [ 🚨 Eject! ]                             |
-|                                                                   |
-|  🛸 Abducting media stream... (72.4 MB / 100%)                    |
-|  [=====================================>            ] 72.4%       |
-|                                                                   |
-|  💬 "Why don't aliens visit our solar system? ... 1 star review!" |
-+-------------------------------------------------------------------+
-```
+<p align="center">
+  <img src="docs/images/tauri-main.png" alt="Tauri Main UI" width="720" style="border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+</p>
 
-### 2. Classic OG Electron Version (`abductor-electron`)
+### 👽 3. Classic OG Electron Version (`abductor-electron`)
 > *The original release featuring the retro animated UFO tractor-beam splash sequence, alien sound cues, and classic abduction joke bank.*
+
+<p align="center">
+  <img src="docs/images/electron-main.png" alt="Electron Main UI" width="720" style="border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+</p>
 
 ---
 
