@@ -1,0 +1,358 @@
+// Download engine — shells out to yt-dlp (same as the original Electron app)
+// but runs it through Tokio so progress parsing never blocks the UI thread.
+// Rust gives us two things the JS version didn't have for free: a `Result`
+// that forces every error path to be handled, and cancellation via a
+// `CancellationToken` instead of manually tracking `abortRequested`.
+
+use serde::Serialize;
+use std::path::PathBuf;
+use std::process::Stdio;
+use std::sync::Arc;
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::process::{Child, Command};
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::Mutex;
+
+#[derive(Clone, Serialize)]
+pub struct DownloadProgress {
+    pub percent: f32,
+    pub speed: Option<String>,
+    pub eta: Option<String>,
+    pub raw_line: String,
+}
+
+#[derive(Clone, Serialize)]
+pub struct DownloadResult {
+    pub success: bool,
+    pub final_path: Option<String>,
+    pub error: Option<String>,
+}
+
+/// Holds the currently-running yt-dlp child process, if any, so the
+/// "eject" button can kill it. Wrapped in Arc<Mutex<>> because the process
+/// is spawned in a Tauri command (async, runs on Tokio) and killed from a
+/// separate command triggered by a UI button click.
+pub struct DownloadState {
+    pub current_child: Arc<Mutex<Option<Child>>>,
+}
+
+impl Default for DownloadState {
+    fn default() -> Self {
+        Self {
+            current_child: Arc::new(Mutex::new(None)),
+        }
+    }
+}
+
+fn current_target_triple() -> &'static str {
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    {
+        "x86_64-unknown-linux-gnu"
+    }
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    {
+        "aarch64-unknown-linux-gnu"
+    }
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    {
+        "x86_64-pc-windows-msvc"
+    }
+    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+    {
+        "x86_64-apple-darwin"
+    }
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    {
+        "aarch64-apple-darwin"
+    }
+    #[cfg(not(any(
+        all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")),
+        all(target_os = "windows", target_arch = "x86_64"),
+        all(target_os = "macos", any(target_arch = "x86_64", target_arch = "aarch64"))
+    )))]
+    {
+        "unknown"
+    }
+}
+
+/// Locates a bundled sidecar binary (production bundle or local dev)
+/// falling back to standard system PATH.
+fn resolve_binary(name: &str) -> PathBuf {
+    let ext = if cfg!(target_os = "windows") { ".exe" } else { "" };
+    let filename = format!("{name}{ext}");
+    let triple_filename = format!("{name}-{}{ext}", current_target_triple());
+
+    let mut candidates = Vec::new();
+
+    // 1. Check relative to current executable (packaged production bundle)
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join(&filename));
+            candidates.push(dir.join(&triple_filename));
+            candidates.push(dir.join("binaries").join(&filename));
+            candidates.push(dir.join("binaries").join(&triple_filename));
+            candidates.push(dir.join("resources").join(&filename));
+            candidates.push(dir.join("resources").join(&triple_filename));
+            candidates.push(dir.join("../Resources").join(&filename));
+            candidates.push(dir.join("../Resources/binaries").join(&filename));
+            candidates.push(dir.join("../Resources/binaries").join(&triple_filename));
+        }
+    }
+
+    // 2. Check development binaries directory
+    candidates.push(PathBuf::from("src-tauri/binaries").join(&triple_filename));
+    candidates.push(PathBuf::from("src-tauri/binaries").join(&filename));
+    candidates.push(PathBuf::from("binaries").join(&triple_filename));
+    candidates.push(PathBuf::from("binaries").join(&filename));
+
+    for path in candidates {
+        if path.is_file() {
+            return path;
+        }
+    }
+
+    // 3. Fall back to system PATH
+    PathBuf::from(filename)
+}
+
+/// Parses a single line of yt-dlp's --newline --progress output into a
+/// percent/speed/eta triple. yt-dlp's progress format looks like:
+///   [download]  42.3% of 10.00MiB at 1.20MiB/s ETA 00:05
+fn parse_progress_line(line: &str) -> Option<DownloadProgress> {
+    if !line.contains("[download]") || !line.contains('%') {
+        return None;
+    }
+
+    let percent = line
+        .split('%')
+        .next()
+        .and_then(|s| s.split_whitespace().last())
+        .and_then(|s| s.parse::<f32>().ok())?;
+
+    let speed = line
+        .split("at ")
+        .nth(1)
+        .and_then(|s| s.split_whitespace().next())
+        .map(|s| s.to_string());
+
+    let eta = line
+        .split("ETA ")
+        .nth(1)
+        .and_then(|s| s.split_whitespace().next())
+        .map(|s| s.to_string());
+
+    Some(DownloadProgress {
+        percent,
+        speed,
+        eta,
+        raw_line: line.trim().to_string(),
+    })
+}
+
+/// Core download engine — used by both the Tauri desktop app (progress goes
+/// out as a Tauri event) and the standalone HTTP server for mobile clients
+/// (progress goes into an in-memory job record). Neither concern lives here;
+/// callers get progress via a plain channel instead.
+pub async fn download(
+    progress_tx: UnboundedSender<DownloadProgress>,
+    state: Arc<Mutex<Option<Child>>>,
+    url: String,
+    save_path: String,
+) -> DownloadResult {
+    let parsed_base = save_path
+        .rfind('.')
+        .map(|i| &save_path[..i])
+        .unwrap_or(&save_path)
+        .to_string();
+    let out_template = format!("{parsed_base}.%(ext)s");
+    let final_path = format!("{parsed_base}.mp4");
+
+    if let Some(parent) = PathBuf::from(&parsed_base).parent() {
+        if let Err(e) = tokio::fs::create_dir_all(parent).await {
+            return DownloadResult {
+                success: false,
+                final_path: None,
+                error: Some(format!("Could not create download folder: {e}")),
+            };
+        }
+    }
+
+    let ytdlp_path = resolve_binary("yt-dlp");
+    let ffmpeg_path = resolve_binary("ffmpeg");
+
+    let mut cmd = Command::new(&ytdlp_path);
+    if ffmpeg_path.is_file() {
+        cmd.arg("--ffmpeg-location").arg(&ffmpeg_path);
+    }
+    // The AppImage runtime points a whole family of interpreter/loader env
+    // vars at its own bundled directory (/tmp/.mount_XXXX/usr/...) so the
+    // Tauri/WebKit binary finds compatible copies of its GTK dependencies.
+    // Every child process inherits that by default — including yt-dlp, a
+    // Python program. Two are actually fatal to it:
+    //   - LD_LIBRARY_PATH: makes Python's C extensions (_ssl, _hashlib,
+    //     zlib, ...) load the AppImage's bundled library versions instead
+    //     of the ones they were built against — segfaults from the ABI
+    //     mismatch (the "<no Python frame>" fault-handler crash we hit).
+    //   - PYTHONHOME / PYTHONPATH: point the interpreter's stdlib search at
+    //     the AppImage's bundle instead of the real Python install, so it
+    //     can't even find its own `encodings` module and fails at startup
+    //     before running a single line of yt-dlp.
+    // The rest (PERLLIB, QT_PLUGIN_PATH, GST_PLUGIN_SYSTEM_PATH*, GTK_*,
+    // GIO/GSETTINGS/GDK_PIXBUF paths, PATH's mount-dir prefix) don't affect
+    // yt-dlp but are stripped too so nothing else it shells out to
+    // (ffmpeg, etc.) can pick up bundle-specific plugin/library paths
+    // either — yt-dlp should see an environment as if it were launched
+    // normally from a terminal, not from inside the AppImage.
+    for var in [
+        "LD_LIBRARY_PATH",
+        "LD_PRELOAD",
+        "PYTHONHOME",
+        "PYTHONPATH",
+        "PERLLIB",
+        "PERL5LIB",
+        "QT_PLUGIN_PATH",
+        "GST_PLUGIN_SYSTEM_PATH",
+        "GST_PLUGIN_SYSTEM_PATH_1_0",
+        "GIO_EXTRA_MODULES",
+        "GSETTINGS_SCHEMA_DIR",
+        "GDK_PIXBUF_MODULE_FILE",
+        "GTK_PATH",
+        "GTK_EXE_PREFIX",
+        "GTK_DATA_PREFIX",
+        "GTK_IM_MODULE_FILE",
+    ] {
+        cmd.env_remove(var);
+    }
+    // PATH itself gets the AppImage's own bin dirs prepended
+    // (/tmp/.mount_XXXX/usr/bin/ etc) — strip just that prefix rather than
+    // removing PATH outright, so yt-dlp can still find ffmpeg and itself.
+    if let Ok(path) = std::env::var("PATH") {
+        if let Some(appdir) = std::env::var("APPDIR").ok().filter(|d| !d.is_empty()) {
+            let cleaned: Vec<&str> = path
+                .split(':')
+                .filter(|p| !p.starts_with(&appdir))
+                .collect();
+            cmd.env("PATH", cleaned.join(":"));
+        }
+    }
+    cmd.args([
+        &url,
+        "--newline",
+        "--no-playlist",
+        "--impersonate",
+        "chrome",
+        "--extractor-args",
+        "generic:impersonate",
+        "--format",
+        // Prefer H.264/AAC MP4, but seamlessly fall back to best video+audio,
+        // silent/video-only clips (e.g. Pixabay stock/timers), or pre-merged files.
+        "bestvideo*[vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo*[vcodec^=avc1]+bestaudio[ext=m4a]/bestvideo*+bestaudio/bestvideo*/best",
+        "--merge-output-format",
+        "mp4",
+        "-o",
+        &out_template,
+        "--progress",
+        "--no-warnings",
+        "--restrict-filenames",
+    ])
+    .stdout(Stdio::piped())
+    .stderr(Stdio::piped());
+
+    let mut child = match cmd.spawn() {
+        Ok(c) => c,
+        Err(e) => {
+            return DownloadResult {
+                success: false,
+                final_path: None,
+                error: Some(format!(
+                    "Could not launch yt-dlp — is it installed and on PATH? ({e})"
+                )),
+            };
+        }
+    };
+
+    let stdout = child.stdout.take().expect("stdout was piped");
+    let stderr = child.stderr.take().expect("stderr was piped");
+
+    // Stash the child so the eject/abort command can kill it mid-flight.
+    *state.lock().await = None; // drop any stale handle first
+    let pid = child.id();
+
+    let stdout_tx = progress_tx.clone();
+    let stdout_task = tokio::spawn(async move {
+        let mut lines = BufReader::new(stdout).lines();
+        while let Ok(Some(line)) = lines.next_line().await {
+            if let Some(progress) = parse_progress_line(&line) {
+                let _ = stdout_tx.send(progress);
+            }
+        }
+    });
+
+    let stderr_tx = progress_tx;
+    let mut stderr_tail = String::new();
+    let stderr_task = tokio::spawn(async move {
+        let mut lines = BufReader::new(stderr).lines();
+        let mut tail = String::new();
+        while let Ok(Some(line)) = lines.next_line().await {
+            if let Some(progress) = parse_progress_line(&line) {
+                let _ = stderr_tx.send(progress);
+            } else {
+                tail = line;
+            }
+        }
+        tail
+    });
+
+    *state.lock().await = Some(child);
+
+    let _ = stdout_task.await;
+    if let Ok(tail) = stderr_task.await {
+        stderr_tail = tail;
+    }
+
+    // Take the child back out to wait on its exit status.
+    let mut guard = state.lock().await;
+    let status = if let Some(mut child) = guard.take() {
+        child.wait().await
+    } else {
+        // Killed by eject — process handle already consumed there.
+        return DownloadResult {
+            success: false,
+            final_path: None,
+            error: Some("Aborted by user.".to_string()),
+        };
+    };
+    drop(guard);
+
+    match status {
+        Ok(s) if s.success() => DownloadResult {
+            success: true,
+            final_path: Some(final_path),
+            error: None,
+        },
+        Ok(_) => DownloadResult {
+            success: false,
+            final_path: None,
+            error: Some(if stderr_tail.is_empty() {
+                "yt-dlp exited with an error.".to_string()
+            } else {
+                stderr_tail
+            }),
+        },
+        Err(e) => DownloadResult {
+            success: false,
+            final_path: None,
+            error: Some(format!("Process error (pid {pid:?}): {e}")),
+        },
+    }
+}
+
+pub async fn abort(state: Arc<Mutex<Option<Child>>>) -> bool {
+    let mut guard = state.lock().await;
+    if let Some(mut child) = guard.take() {
+        let _ = child.kill().await;
+        true
+    } else {
+        false
+    }
+}
