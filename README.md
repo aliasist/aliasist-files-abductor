@@ -33,11 +33,11 @@ aliasist-files-abductor/
 
 ## 📸 Visual Showcase & Screenshots
 
-### 🌌 1. Retro UFO Splash Sequence
-> *An animated retro space scene with glowing tractor beams and real-time status calibration.*
+### 🌌 1. Retro UFO Cow-Abduction Splash Sequence
+> *An animated retro space scene — UFO tractor beam abducting a cow, twinkling stars, and real-time status calibration.*
 
 <p align="center">
-  <img src="docs/images/splash-screen.png" alt="Splash Screen" width="720" style="border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+  <img src="docs/images/abductor-cow-splash.png" alt="UFO Cow Abduction Splash Screen" width="720" style="border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
 </p>
 
 ### 🛸 2. Modern Rust + Tauri Version (`abductor-tauri`)
