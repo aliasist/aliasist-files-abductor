@@ -1,0 +1,15 @@
+node_modules
+dist
+src-tauri/target
+src-tauri/binaries
+.DS_Store
+*.log
+
+# Android (Capacitor) — build output only, source config is tracked
+android/build
+android/app/build
+android/capacitor-cordova-android-plugins/build
+android/.gradle
+android/local.properties
+android/keystore.properties
+android/**/*.keystore

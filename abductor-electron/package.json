@@ -1,0 +1,15 @@
+{
+  "name": "aliasist-files-abductor",
+  "version": "2.7.0",
+  "description": "Aliasist Files Abductor — Abducting files from across the galaxy",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "dev": "electron . --no-sandbox"
+  },
+  "author": "dev_aliasist (www.aliasist.com)",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^43.4.1"
+  }
+}

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self'; object-src 'none';">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aliasist Files Abductor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ── Custom Title Bar ─────────────────────────────────────────────── -->
+  <div class="titlebar">
+    <span class="titlebar-text">👽 Aliasist Files Abductor</span>
+    <div class="titlebar-btns">
+      <button class="tb-btn" id="tbMin">─</button>
+      <button class="tb-btn" id="tbMax">☐</button>
+      <button class="tb-btn tb-close" id="tbClose">✕</button>
+    </div>
+  </div>
+
+  <!-- ── Splash Screen with UFO Cow Abduction ─────────────────────────── -->
+  <div id="splash" class="splash">
+    <div class="splash-content">
+      <!-- Stars -->
+      <div class="stars">
+        <div class="star" style="top:8%;left:12%;animation-delay:0s"></div>
+        <div class="star" style="top:15%;left:80%;animation-delay:0.3s"></div>
+        <div class="star" style="top:25%;left:45%;animation-delay:0.7s"></div>
+        <div class="star" style="top:5%;left:65%;animation-delay:1.1s"></div>
+        <div class="star" style="top:35%;left:20%;animation-delay:0.5s"></div>
+        <div class="star" style="top:12%;left:35%;animation-delay:1.4s"></div>
+        <div class="star" style="top:30%;left:72%;animation-delay:0.9s"></div>
+        <div class="star" style="top:18%;left:55%;animation-delay:1.7s"></div>
+      </div>
+      <!-- UFO Scene -->
+      <div class="ufo-scene">
+        <div class="ufo">
+          <div class="ufo-dome"></div>
+          <div class="ufo-body">
+            <div class="ufo-light"></div>
+            <div class="ufo-light"></div>
+            <div class="ufo-light"></div>
+          </div>
+        </div>
+        <div class="beam"></div>
+        <div class="cow">
+          <div class="cow-body"></div>
+          <div class="cow-head"></div>
+          <div class="cow-spots"></div>
+          <div class="cow-legs">
+            <div class="leg"></div><div class="leg"></div>
+            <div class="leg"></div><div class="leg"></div>
+          </div>
+        </div>
+        <div class="ground"></div>
+      </div>
+
+      <!-- Text -->
+      <h1 class="splash-title">ALIASIST</h1>
+      <p class="splash-sub">F I L E S &nbsp; A B D U C T O R</p>
+      <p class="splash-credit">coded by dev_aliasist · www.aliasist.com</p>
+      <p class="splash-status" id="splashStatus">This is a fun project about aliens lol enjoy...</p>
+    </div>
+  </div>
+
+  <!-- ── Main App ────────────────────────────────────────────────────────── -->
+  <div id="app" class="app hidden">
+
+    <!-- Protection button-->
+    <button class="badge-protected" id="cornerProtectedBtn" title="Open Source | Protected & Verified Safety.">🛡️ PROTECTED</button>
+    <div class="app-inner">
+      <header class="header">
+        <div class="header-brand">
+          <img src="assets/robot-arm.svg" alt="Aliasist Robot Arm" class="brand-icon">
+          <h1>ALIASIST FILES ABDUCTOR</h1>
+        </div>
+        <p class="subtitle">Abducting files from a galaxy far far away.. · www.aliasist.com</p>
+      </header>
+      <main class="panel">
+        <label class="field-label">🎯 Target URL</label>
+        <div class="input-row">
+          <input type="text" id="urlInput" class="text-input" placeholder="Paste any URL here..." spellcheck="false">
+          <button class="btn btn-sm" id="pasteBtn">📋 Paste</button>
+        </div>
+        <label class="field-label">📂 Landing Zone</label>
+        <div class="input-row">
+          <input type="text" id="saveInput" class="text-input" placeholder="Auto-filled..." spellcheck="false" readonly>
+          <button class="btn btn-sm" id="browseBtn">📁 Browse</button>
+        </div>
+        <div class="disclaimer">
+          ⚠ DISCLAIMER* You are responsible for what you are authorized to abduct. Don't be a space pirate! 🏴‍☠️ 
+          <label class="check-row">
+            <input type="checkbox" id="acceptBox">
+            <span>🛡️ I'll obey and be on my best behavior.</span>
+          </label>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-abduct" id="abductBtn">🛸 Abduct File</button>
+          <button class="btn btn-eject" id="ejectBtn" disabled>🚨 Eject!</button>
+          <span class="size-info" id="sizeInfo"></span>
+        </div>
+      </main>
+      <div class="progress-area">
+        <p class="status" id="statusText">👽 Awaiting target coordinates...</p>
+        <div class="track">
+          <div class="bar" id="progressBar"></div>
+        </div>
+      </div>
+      <p class="joke" id="joke">Welcome aboard, wanderer. The U.F.O. awaits your command.</p>
+      <footer class="footer">
+        Aliasist Files Abductor v4.7 · Fun project coded by dev_aliasist · www.aliasist.com
+      </footer>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+name: Release
+
+# Tauri apps link against the OS's native GUI toolkit (GTK/WebKit on Linux,
+# WinAPI/WebView2 on Windows, Cocoa/WKWebView on macOS) — there's no single
+# machine that can cross-compile all three, so each platform builds natively
+# in its own CI runner and the results are collected into one GitHub Release.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            args: ""
+          - platform: windows-latest
+            args: ""
+          # Plain (non-universal) build: the universal-apple-darwin lipo-merge
+          # step only merges the main app binary, not the second `abductor-server`
+          # [[bin]] target this crate also declares, which breaks .app bundling.
+          # This targets the runner's native arch (Apple Silicon) only.
+          - platform: macos-latest
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust build cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Fetch sidecar binaries (yt-dlp and ffmpeg)
+        shell: bash
+        run: |
+          chmod +x scripts/fetch-binaries.sh
+          ./scripts/fetch-binaries.sh
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Aliasist Files Abductor ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
