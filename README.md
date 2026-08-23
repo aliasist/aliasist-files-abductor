@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="docs/images/logo" width="160" alt="Aliasist Logo" />
+<img src="docs/images/logo.png" width="160" alt="Aliasist Logo" />
 
 ### *Abducting files from a galaxy far, far away...*
 
