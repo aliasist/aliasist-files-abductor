@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { randomJoke, type JokePhase } from "./jokes";
 import { backend, type DownloadProgress } from "./backend";
 import Splash from "./Splash";
-import robotArmIcon from "./assets/robot-arm.svg";
+import logoIcon from "./assets/logo.svg";
 import "./style.css";
 
 type Phase = "idle" | "downloading" | "done" | "aborted" | "error";
@@ -131,7 +131,7 @@ export default function App() {
       >
         <header className="header">
           <div className="header-brand">
-            <img src={robotArmIcon} alt="Aliasist Robot Arm" className="brand-icon" />
+            <img src={logoIcon} alt="Aliasist Logo" className="brand-icon" />
             <h1>ALIASIST FILES ABDUCTOR</h1>
           </div>
           <p className="subtitle">Abducting files from a galaxy far far away.. · www.aliasist.com</p>
