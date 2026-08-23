@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Alien Abductor Header](https://raw.githubusercontent.com/aliasist/aliasist-web/main/public/aliasist_logo_transparent.png)
+<img src="docs/images/logo.svg" width="160" alt="Aliasist Logo" />
 
 ### *Abducting files from a galaxy far, far away...*
 
