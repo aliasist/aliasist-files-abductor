@@ -13,11 +13,11 @@
     "windows": [
       {
         "title": "Aliasist Files Abductor",
-        "width": 800,
-        "height": 600,
+        "width": 900,
+        "height": 650,
         "resizable": true,
         "fullscreen": false,
-        "maximized": true
+        "center": true
       }
     ],
     "security": {

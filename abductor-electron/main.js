@@ -19,6 +19,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 580,
+    center: true,
     backgroundColor: '#05080d',
     icon: path.join(__dirname, 'assets', 'alien_icon.ico'),
     webPreferences: {

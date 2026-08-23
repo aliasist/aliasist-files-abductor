@@ -228,6 +228,7 @@ view model =
                 [ text "\u{1F6F8} Abduct File" ]
             , button [ class "eject", onClick EjectClicked ] [ text "\u{1F6A8} Eject!" ]
             ]
+        , div [ class "spacer" ] []
         , viewStatus model.status
         ]
 

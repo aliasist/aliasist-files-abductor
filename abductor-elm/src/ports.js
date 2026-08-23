@@ -17,9 +17,17 @@ export function wirePorts(app) {
   });
 
   app.ports.startDownload.subscribe(({ url, savePath }) => {
-    invoke("download_file", { url, savePath }).then((result) => {
-      app.ports.downloadResult.send(result);
-    });
+    invoke("download_file", { url, savePath })
+      .then((result) => {
+        app.ports.downloadResult.send(result);
+      })
+      .catch((err) => {
+        app.ports.downloadResult.send({
+          success: false,
+          final_path: null,
+          error: typeof err === "string" ? err : JSON.stringify(err),
+        });
+      });
   });
 
   app.ports.abortDownload.subscribe(() => {
