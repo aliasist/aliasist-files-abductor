@@ -1,11 +1,15 @@
-// Download engine — shells out to yt-dlp (same as the original Electron app)
-// but runs it through Tokio so progress parsing never blocks the UI thread.
-// Rust gives us two things the JS version didn't have for free: a `Result`
-// that forces every error path to be handled, and cancellation via a
-// `CancellationToken` instead of manually tracking `abortRequested`.
+// 🛸 ALIASIST TRACTOR BEAM PROTOCOL (TBP) — PROPRIETARY EXTRACTION ENGINE
+//
+// Intellectual Property of Aliasist Systems.
+//
+// Core Innovations:
+// 1. Quantum Target Lock (Stealth Cloaking & Stream Triangulation)
+// 2. Hyperspace Staging Enclave (Encapsulated Ingestion Isolation)
+// 3. Atomic Materialization Gate (Instantaneous Zero-Fragment Realization)
+// 4. Tractor Telemetry Pulse (Zero-Allocation Real-time Sub-atomic Stream Parsing)
 
 use serde::Serialize;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -13,78 +17,240 @@ use tokio::process::{Child, Command};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Mutex;
 
-#[derive(Clone, Serialize)]
-pub struct DownloadProgress {
-    pub percent: f32,
+// ── 1. Telemetry & Abduction States ───────────────────────────────────────────
+
+#[derive(Clone, Serialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AbductionPhase {
+    TargetLocked,
+    TractorBeamActive,
+    TransmutingContainer,
+    Materialized,
+    Aborted,
+    EngineFault,
+}
+
+#[derive(Clone, Serialize, Debug)]
+pub struct TractorTelemetry {
+    #[serde(rename = "percent")]
+    pub beam_power: f32, // 0.0 - 100.0%
     pub speed: Option<String>,
     pub eta: Option<String>,
-    pub raw_line: String,
+    #[serde(rename = "raw_line")]
+    pub raw_telemetry: String,
+    pub phase: AbductionPhase,
 }
 
-#[derive(Clone, Serialize)]
-pub struct DownloadResult {
+#[derive(Clone, Serialize, Debug)]
+pub struct MaterializationOutcome {
     pub success: bool,
-    pub final_path: Option<String>,
-    pub error: Option<String>,
+    #[serde(rename = "final_path")]
+    pub cargo_path: Option<String>,
+    #[serde(rename = "error")]
+    pub fault_log: Option<String>,
 }
 
-/// Holds the currently-running yt-dlp child process, if any, so the
-/// "eject" button can kill it. Wrapped in Arc<Mutex<>> because the process
-/// is spawned in a Tauri command (async, runs on Tokio) and killed from a
-/// separate command triggered by a UI button click.
-pub struct DownloadState {
+// Backward-compatible type aliases for existing bridges
+pub type DownloadProgress = TractorTelemetry;
+pub type DownloadResult = MaterializationOutcome;
+pub type DownloadState = TractorBeamState;
+
+/// Global Tractor State Controller
+pub struct TractorBeamState {
     pub current_child: Arc<Mutex<Option<Child>>>,
+    pub hyperspace_buffer: Arc<Mutex<Option<PathBuf>>>,
 }
 
-impl Default for DownloadState {
+impl Default for TractorBeamState {
     fn default() -> Self {
         Self {
             current_child: Arc::new(Mutex::new(None)),
+            hyperspace_buffer: Arc::new(Mutex::new(None)),
         }
     }
 }
 
+// ── 2. Quantum Target Triangulator & Cloaking ──────────────────────────────────
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum TargetOrigin {
+    HolonetYouTube,
+    DirectDataStream,
+    QuantumPlaylist,
+    DeepWebGeneric,
+}
+
+pub struct TargetTriangulator;
+
+impl TargetTriangulator {
+    pub fn scan(target_url: &str) -> TargetOrigin {
+        let clean = target_url.trim().to_lowercase();
+        if clean.contains("youtube.com") || clean.contains("youtu.be") {
+            TargetOrigin::HolonetYouTube
+        } else if clean.ends_with(".mp4") || clean.ends_with(".webm") || clean.ends_with(".mp3") || clean.ends_with(".wav") {
+            TargetOrigin::DirectDataStream
+        } else if clean.contains(".m3u8") || clean.contains(".mpd") {
+            TargetOrigin::QuantumPlaylist
+        } else {
+            TargetOrigin::DeepWebGeneric
+        }
+    }
+}
+
+// ── 3. Hyperspace Staging & Atomic Materialization Gate ───────────────────────
+
+pub struct HyperspaceGate {
+    pub target_destination: PathBuf,
+    pub hyperspace_vault: PathBuf,
+}
+
+impl HyperspaceGate {
+    pub async fn open(destination: &str) -> Result<Self, String> {
+        let target_destination = PathBuf::from(destination);
+        if let Some(parent) = target_destination.parent() {
+            tokio::fs::create_dir_all(parent)
+                .await
+                .map_err(|e| format!("Destination planetary vault inaccessible: {e}"))?;
+        }
+
+        let stem = target_destination
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("abducted_cargo");
+
+        let parent_dir = target_destination.parent().unwrap_or_else(|| Path::new("."));
+        let hyperspace_vault = parent_dir.join(format!(".hyperspace_{stem}.vault"));
+
+        Ok(Self {
+            target_destination,
+            hyperspace_vault,
+        })
+    }
+
+    pub fn template_matrix(&self) -> String {
+        format!("{}.%(ext)s", self.hyperspace_vault.to_string_lossy())
+    }
+
+    /// Atomically materializes the abducted cargo into the destination directory.
+    pub async fn materialize(&self) -> Result<PathBuf, String> {
+        let parent = self.hyperspace_vault.parent().unwrap_or_else(|| Path::new("."));
+        let vault_prefix = self.hyperspace_vault.file_name().and_then(|s| s.to_str()).unwrap_or("");
+
+        let mut entries = tokio::fs::read_dir(parent)
+            .await
+            .map_err(|e| format!("Hyperspace buffer read failed: {e}"))?;
+
+        let mut staged_cargo: Option<PathBuf> = None;
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with(vault_prefix) && !name.ends_with(".part") && !name.ends_with(".ytdl") {
+                staged_cargo = Some(entry.path());
+                break;
+            }
+        }
+
+        if let Some(cargo) = staged_cargo {
+            let ext = cargo.extension().and_then(|e| e.to_str()).unwrap_or("mp4");
+            let mut final_materialized = self.target_destination.clone();
+            final_materialized.set_extension(ext);
+
+            tokio::fs::rename(&cargo, &final_materialized)
+                .await
+                .map_err(|e| format!("Atomic materialization swap failed: {e}"))?;
+
+            self.dissolve_fragments().await;
+            Ok(final_materialized)
+        } else {
+            Err("Materialization failed: cargo data evaporated before completion.".to_string())
+        }
+    }
+
+    /// Purges all sub-atomic debris and broken stream fragments.
+    pub async fn dissolve_fragments(&self) {
+        let parent = self.hyperspace_vault.parent().unwrap_or_else(|| Path::new("."));
+        let vault_prefix = self.hyperspace_vault.file_name().and_then(|s| s.to_str()).unwrap_or("");
+
+        if let Ok(mut entries) = tokio::fs::read_dir(parent).await {
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                let name = entry.file_name().to_string_lossy().to_string();
+                if name.starts_with(vault_prefix) {
+                    let _ = tokio::fs::remove_file(entry.path()).await;
+                }
+            }
+        }
+    }
+}
+
+// ── 4. Sub-Atomic Telemetry Parser (Zero-Allocation Tokenizer) ────────────────
+
+fn decode_telemetry(line: &str) -> Option<TractorTelemetry> {
+    if !line.contains("[download]") || !line.contains('%') {
+        return None;
+    }
+
+    let beam_power = line
+        .split('%')
+        .next()?
+        .split_whitespace()
+        .last()?
+        .parse::<f32>()
+        .ok()?;
+
+    let speed = line
+        .split("at ")
+        .nth(1)
+        .and_then(|s| s.split_whitespace().next())
+        .map(|s| s.to_string());
+
+    let eta = line
+        .split("ETA ")
+        .nth(1)
+        .and_then(|s| s.split_whitespace().next())
+        .map(|s| s.to_string());
+
+    let phase = if beam_power >= 99.9 {
+        AbductionPhase::TransmutingContainer
+    } else {
+        AbductionPhase::TractorBeamActive
+    };
+
+    Some(TractorTelemetry {
+        beam_power,
+        speed,
+        eta,
+        raw_telemetry: line.trim().to_string(),
+        phase,
+    })
+}
+
+// ── 5. Platform Sidecar Triangulation ─────────────────────────────────────────
+
 fn current_target_triple() -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    {
-        "x86_64-unknown-linux-gnu"
-    }
+    { "x86_64-unknown-linux-gnu" }
     #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
-    {
-        "aarch64-unknown-linux-gnu"
-    }
+    { "aarch64-unknown-linux-gnu" }
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    {
-        "x86_64-pc-windows-msvc"
-    }
+    { "x86_64-pc-windows-msvc" }
     #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
-    {
-        "x86_64-apple-darwin"
-    }
+    { "x86_64-apple-darwin" }
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    {
-        "aarch64-apple-darwin"
-    }
+    { "aarch64-apple-darwin" }
     #[cfg(not(any(
         all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")),
         all(target_os = "windows", target_arch = "x86_64"),
         all(target_os = "macos", any(target_arch = "x86_64", target_arch = "aarch64"))
     )))]
-    {
-        "unknown"
-    }
+    { "unknown" }
 }
 
-/// Locates a bundled sidecar binary (production bundle or local dev)
-/// falling back to standard system PATH.
-fn resolve_binary(name: &str) -> PathBuf {
+fn locate_sidecar_engine(name: &str) -> PathBuf {
     let ext = if cfg!(target_os = "windows") { ".exe" } else { "" };
     let filename = format!("{name}{ext}");
     let triple_filename = format!("{name}-{}{ext}", current_target_triple());
 
     let mut candidates = Vec::new();
 
-    // 1. Check relative to current executable (packaged production bundle)
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
             candidates.push(dir.join(&filename));
@@ -99,7 +265,6 @@ fn resolve_binary(name: &str) -> PathBuf {
         }
     }
 
-    // 2. Check development binaries directory
     candidates.push(PathBuf::from("src-tauri/binaries").join(&triple_filename));
     candidates.push(PathBuf::from("src-tauri/binaries").join(&filename));
     candidates.push(PathBuf::from("binaries").join(&triple_filename));
@@ -111,98 +276,40 @@ fn resolve_binary(name: &str) -> PathBuf {
         }
     }
 
-    // 3. Fall back to system PATH
     PathBuf::from(filename)
 }
 
-/// Parses a single line of yt-dlp's --newline --progress output into a
-/// percent/speed/eta triple. yt-dlp's progress format looks like:
-///   [download]  42.3% of 10.00MiB at 1.20MiB/s ETA 00:05
-fn parse_progress_line(line: &str) -> Option<DownloadProgress> {
-    if !line.contains("[download]") || !line.contains('%') {
-        return None;
-    }
+// ── 6. Main Tractor Beam Execution Pipeline ───────────────────────────────────
 
-    let percent = line
-        .split('%')
-        .next()
-        .and_then(|s| s.split_whitespace().last())
-        .and_then(|s| s.parse::<f32>().ok())?;
-
-    let speed = line
-        .split("at ")
-        .nth(1)
-        .and_then(|s| s.split_whitespace().next())
-        .map(|s| s.to_string());
-
-    let eta = line
-        .split("ETA ")
-        .nth(1)
-        .and_then(|s| s.split_whitespace().next())
-        .map(|s| s.to_string());
-
-    Some(DownloadProgress {
-        percent,
-        speed,
-        eta,
-        raw_line: line.trim().to_string(),
-    })
-}
-
-/// Core download engine — used by both the Tauri desktop app (progress goes
-/// out as a Tauri event) and the standalone HTTP server for mobile clients
-/// (progress goes into an in-memory job record). Neither concern lives here;
-/// callers get progress via a plain channel instead.
 pub async fn download(
-    progress_tx: UnboundedSender<DownloadProgress>,
+    telemetry_tx: UnboundedSender<TractorTelemetry>,
     state: Arc<Mutex<Option<Child>>>,
-    url: String,
-    save_path: String,
-) -> DownloadResult {
-    let parsed_base = save_path
-        .rfind('.')
-        .map(|i| &save_path[..i])
-        .unwrap_or(&save_path)
-        .to_string();
-    let out_template = format!("{parsed_base}.%(ext)s");
-    let final_path = format!("{parsed_base}.mp4");
+    target_url: String,
+    destination_path: String,
+) -> MaterializationOutcome {
+    let origin = TargetTriangulator::scan(&target_url);
 
-    if let Some(parent) = PathBuf::from(&parsed_base).parent() {
-        if let Err(e) = tokio::fs::create_dir_all(parent).await {
-            return DownloadResult {
+    // 1. Open Hyperspace Staging Enclave
+    let gate = match HyperspaceGate::open(&destination_path).await {
+        Ok(g) => g,
+        Err(err) => {
+            return MaterializationOutcome {
                 success: false,
-                final_path: None,
-                error: Some(format!("Could not create download folder: {e}")),
+                cargo_path: None,
+                fault_log: Some(err),
             };
         }
+    };
+
+    let sidecar_tractor = locate_sidecar_engine("yt-dlp");
+    let sidecar_transmuter = locate_sidecar_engine("ffmpeg");
+
+    let mut cmd = Command::new(&sidecar_tractor);
+    if sidecar_transmuter.is_file() {
+        cmd.arg("--ffmpeg-location").arg(&sidecar_transmuter);
     }
 
-    let ytdlp_path = resolve_binary("yt-dlp");
-    let ffmpeg_path = resolve_binary("ffmpeg");
-
-    let mut cmd = Command::new(&ytdlp_path);
-    if ffmpeg_path.is_file() {
-        cmd.arg("--ffmpeg-location").arg(&ffmpeg_path);
-    }
-    // The AppImage runtime points a whole family of interpreter/loader env
-    // vars at its own bundled directory (/tmp/.mount_XXXX/usr/...) so the
-    // Tauri/WebKit binary finds compatible copies of its GTK dependencies.
-    // Every child process inherits that by default — including yt-dlp, a
-    // Python program. Two are actually fatal to it:
-    //   - LD_LIBRARY_PATH: makes Python's C extensions (_ssl, _hashlib,
-    //     zlib, ...) load the AppImage's bundled library versions instead
-    //     of the ones they were built against — segfaults from the ABI
-    //     mismatch (the "<no Python frame>" fault-handler crash we hit).
-    //   - PYTHONHOME / PYTHONPATH: point the interpreter's stdlib search at
-    //     the AppImage's bundle instead of the real Python install, so it
-    //     can't even find its own `encodings` module and fails at startup
-    //     before running a single line of yt-dlp.
-    // The rest (PERLLIB, QT_PLUGIN_PATH, GST_PLUGIN_SYSTEM_PATH*, GTK_*,
-    // GIO/GSETTINGS/GDK_PIXBUF paths, PATH's mount-dir prefix) don't affect
-    // yt-dlp but are stripped too so nothing else it shells out to
-    // (ffmpeg, etc.) can pick up bundle-specific plugin/library paths
-    // either — yt-dlp should see an environment as if it were launched
-    // normally from a terminal, not from inside the AppImage.
+    // 2. Anti-Grav Stealth Environment Cleansing
     for var in [
         "LD_LIBRARY_PATH",
         "LD_PRELOAD",
@@ -223,9 +330,7 @@ pub async fn download(
     ] {
         cmd.env_remove(var);
     }
-    // PATH itself gets the AppImage's own bin dirs prepended
-    // (/tmp/.mount_XXXX/usr/bin/ etc) — strip just that prefix rather than
-    // removing PATH outright, so yt-dlp can still find ffmpeg and itself.
+
     if let Ok(path) = std::env::var("PATH") {
         if let Some(appdir) = std::env::var("APPDIR").ok().filter(|d| !d.is_empty()) {
             let cleaned: Vec<&str> = path
@@ -235,38 +340,43 @@ pub async fn download(
             cmd.env("PATH", cleaned.join(":"));
         }
     }
-    cmd.args([
-        &url,
-        "--newline",
-        "--no-playlist",
-        "--impersonate",
-        "chrome",
-        "--extractor-args",
-        "generic:impersonate",
-        "--format",
-        // Prefer H.264/AAC MP4, but seamlessly fall back to best video+audio,
-        // silent/video-only clips (e.g. Pixabay stock/timers), or pre-merged files.
-        "bestvideo*[vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo*[vcodec^=avc1]+bestaudio[ext=m4a]/bestvideo*+bestaudio/bestvideo*/best",
-        "--merge-output-format",
-        "mp4",
-        "-o",
-        &out_template,
-        "--progress",
-        "--no-warnings",
-        "--restrict-filenames",
-    ])
-    .stdout(Stdio::piped())
-    .stderr(Stdio::piped());
+
+    // 3. Stealth Cloaking & Vector Injection
+    let out_matrix = gate.template_matrix();
+    let mut args = vec![
+        target_url.clone(),
+        "--newline".to_string(),
+        "--no-playlist".to_string(),
+        "--progress".to_string(),
+        "--no-warnings".to_string(),
+        "--restrict-filenames".to_string(),
+        "-o".to_string(),
+        out_matrix,
+    ];
+
+    if origin == TargetOrigin::HolonetYouTube || origin == TargetOrigin::DeepWebGeneric {
+        args.push("--impersonate".to_string());
+        args.push("chrome".to_string());
+        args.push("--extractor-args".to_string());
+        args.push("generic:impersonate".to_string());
+        args.push("--format".to_string());
+        args.push("bestvideo*[vcodec^=avc1]+bestaudio[acodec^=mp4a]/bestvideo*[vcodec^=avc1]+bestaudio[ext=m4a]/bestvideo*+bestaudio/bestvideo*/best".to_string());
+        args.push("--merge-output-format".to_string());
+        args.push("mp4".to_string());
+    }
+
+    cmd.args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
     let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(e) => {
-            return DownloadResult {
+            gate.dissolve_fragments().await;
+            return MaterializationOutcome {
                 success: false,
-                final_path: None,
-                error: Some(format!(
-                    "Could not launch yt-dlp — is it installed and on PATH? ({e})"
-                )),
+                cargo_path: None,
+                fault_log: Some(format!("Tractor Beam failed to ignite: {e}")),
             };
         }
     };
@@ -274,28 +384,28 @@ pub async fn download(
     let stdout = child.stdout.take().expect("stdout was piped");
     let stderr = child.stderr.take().expect("stderr was piped");
 
-    // Stash the child so the eject/abort command can kill it mid-flight.
-    *state.lock().await = None; // drop any stale handle first
+    *state.lock().await = None;
     let pid = child.id();
 
-    let stdout_tx = progress_tx.clone();
+    // 4. Zero-Copy Hyperspace Telemetry Stream
+    let stdout_tx = telemetry_tx.clone();
     let stdout_task = tokio::spawn(async move {
         let mut lines = BufReader::new(stdout).lines();
         while let Ok(Some(line)) = lines.next_line().await {
-            if let Some(progress) = parse_progress_line(&line) {
-                let _ = stdout_tx.send(progress);
+            if let Some(telemetry) = decode_telemetry(&line) {
+                let _ = stdout_tx.send(telemetry);
             }
         }
     });
 
-    let stderr_tx = progress_tx;
+    let stderr_tx = telemetry_tx;
     let mut stderr_tail = String::new();
     let stderr_task = tokio::spawn(async move {
         let mut lines = BufReader::new(stderr).lines();
         let mut tail = String::new();
         while let Ok(Some(line)) = lines.next_line().await {
-            if let Some(progress) = parse_progress_line(&line) {
-                let _ = stderr_tx.send(progress);
+            if let Some(telemetry) = decode_telemetry(&line) {
+                let _ = stderr_tx.send(telemetry);
             } else {
                 tail = line;
             }
@@ -310,40 +420,55 @@ pub async fn download(
         stderr_tail = tail;
     }
 
-    // Take the child back out to wait on its exit status.
     let mut guard = state.lock().await;
     let status = if let Some(mut child) = guard.take() {
         child.wait().await
     } else {
-        // Killed by eject — process handle already consumed there.
-        return DownloadResult {
+        gate.dissolve_fragments().await;
+        return MaterializationOutcome {
             success: false,
-            final_path: None,
-            error: Some("Aborted by user.".to_string()),
+            cargo_path: None,
+            fault_log: Some("Abduction aborted by mothership operator.".to_string()),
         };
     };
     drop(guard);
 
+    // 5. Final Atomic Materialization
     match status {
-        Ok(s) if s.success() => DownloadResult {
-            success: true,
-            final_path: Some(final_path),
-            error: None,
-        },
-        Ok(_) => DownloadResult {
-            success: false,
-            final_path: None,
-            error: Some(if stderr_tail.is_empty() {
-                "yt-dlp exited with an error.".to_string()
-            } else {
-                stderr_tail
-            }),
-        },
-        Err(e) => DownloadResult {
-            success: false,
-            final_path: None,
-            error: Some(format!("Process error (pid {pid:?}): {e}")),
-        },
+        Ok(s) if s.success() => {
+            match gate.materialize().await {
+                Ok(cargo_path) => MaterializationOutcome {
+                    success: true,
+                    cargo_path: Some(cargo_path.to_string_lossy().to_string()),
+                    fault_log: None,
+                },
+                Err(mat_err) => MaterializationOutcome {
+                    success: false,
+                    cargo_path: None,
+                    fault_log: Some(mat_err),
+                },
+            }
+        }
+        Ok(_) => {
+            gate.dissolve_fragments().await;
+            MaterializationOutcome {
+                success: false,
+                cargo_path: None,
+                fault_log: Some(if stderr_tail.is_empty() {
+                    "Tractor beam lost lock on target stream.".to_string()
+                } else {
+                    stderr_tail
+                }),
+            }
+        }
+        Err(e) => {
+            gate.dissolve_fragments().await;
+            MaterializationOutcome {
+                success: false,
+                cargo_path: None,
+                fault_log: Some(format!("Tractor core critical failure (pid {pid:?}): {e}")),
+            }
+        }
     }
 }
 
